@@ -1,7 +1,8 @@
 /**
  * background.js (for Firefox)
  *
- * Handles extension icon clicks and messages from the content script.
+ * Handles extension icon clicks and messages from the content script,
+ * including the logic for moving tabs.
  */
 
 // Listener for when the user clicks the extension's action button.
@@ -46,6 +47,17 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.id && message.windowId) {
         browser.tabs.update(message.id, { active: true });
         browser.windows.update(message.windowId, { focused: true });
+      }
+      break;
+
+    // **NEW**: Moves a tab to a new position within a window.
+    case "MOVE_TAB":
+      if (message.tabId && message.windowId) {
+        browser.tabs.move(message.tabId, {
+          windowId: message.windowId,
+          index: message.index
+        }).then(sendResponse);
+        return true;
       }
       break;
   }

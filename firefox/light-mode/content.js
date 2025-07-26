@@ -1,7 +1,7 @@
 /**
  * content.js (for Firefox)
  *
- * Merges Shadow DOM functionality with a new light theme.
+ * Merges Shadow DOM functionality, drag-and-drop, and the light theme.
  * Injects the UI, fetches tab data, and handles user interactions.
  */
 (() => {
@@ -28,7 +28,6 @@
   document.body.appendChild(host);
   const shadowRoot = host.attachShadow({ mode: "open" });
 
-  // Create the HTML structure within the Shadow DOM.
   shadowRoot.innerHTML = `
     <style>
       /* New Light Theme Palette */
@@ -48,7 +47,7 @@
       #tab-overlay-dim {
         position: fixed;
         inset: 0;
-        background-color: rgba(2, 43, 58, 0.4); /* Gunmetal with transparency */
+        background-color: rgba(2, 43, 58, 0.4);
         backdrop-filter: blur(5px);
         z-index: 2147483645;
       }
@@ -124,9 +123,11 @@
         background-color: var(--lavender-web);
         border-radius: 18px 18px 0 0;
       }
+      /* **UPDATED**: Changed to a 3-column grid layout */
       .tabs-list {
-          display: flex;
-          flex-direction: column;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
           padding: 8px;
       }
       .tab {
@@ -135,14 +136,22 @@
         padding: 12px 10px;
         border-radius: 12px;
         cursor: pointer;
-        transition: background-color 0.15s ease-in-out;
+        transition: background-color 0.15s, border-top 0.15s;
         border: 1px solid transparent;
+        border-top: 2px solid transparent; /* For drop indicator */
       }
       .tab:hover {
         background-color: var(--lavender-web);
       }
       .tab.duplicate {
         border-left: 3px solid var(--teal);
+      }
+      /* Styles for drag-and-drop */
+      .tab.dragging {
+        opacity: 0.5;
+      }
+      .tab.drag-over {
+        border-top: 2px solid var(--teal);
       }
       .tab img {
         width: 16px;
@@ -189,11 +198,9 @@
     </div>
   `;
 
-  // Get references to the dynamic elements inside the Shadow DOM.
   const tabContainer = shadowRoot.getElementById("tab-container");
   const searchInput = shadowRoot.getElementById("search");
   shadowRoot.getElementById('tab-overlay-dim').addEventListener('click', closeOverlay);
-
 
   function renderTabs(windows) {
     const allTabs = windows.flatMap(w => w.tabs.map(t => ({ ...t, windowId: w.id })));
@@ -211,7 +218,6 @@
       win.tabs.forEach(tab => {
         const tabDiv = document.createElement("div");
         tabDiv.className = "tab";
-        // Store full title and URL for searching
         tabDiv.setAttribute('data-full-title', tab.title || '');
         tabDiv.setAttribute('data-url', tab.url || '');
 
@@ -222,7 +228,14 @@
         const favicon = document.createElement("img");
         favicon.src = tab.favIconUrl || "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
         favicon.onerror = () => { favicon.style.display = 'none'; };
-        const titleText = document.createTextNode(tab.title || 'Untitled Tab');
+        
+        // **UPDATED**: Truncate long titles to 50 characters.
+        let title = tab.title || 'Untitled Tab';
+        if (title.length > 50) {
+          title = title.substring(0, 50) + '...';
+        }
+        const titleText = document.createTextNode(title);
+
         titleWrapper.appendChild(favicon);
         titleWrapper.appendChild(titleText);
         const closeBtn = document.createElement("button");
@@ -233,10 +246,50 @@
         };
         tabDiv.appendChild(titleWrapper);
         tabDiv.appendChild(closeBtn);
+
+        // Add drag-and-drop functionality
+        tabDiv.setAttribute("draggable", "true");
+
+        tabDiv.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("application/json", JSON.stringify({ tabId: tab.id, windowId: tab.windowId }));
+          e.dataTransfer.effectAllowed = "move";
+          e.currentTarget.classList.add("dragging");
+        });
+
+        tabDiv.addEventListener("dragend", (e) => {
+          e.currentTarget.classList.remove("dragging");
+        });
+
+        tabDiv.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          e.currentTarget.classList.add("drag-over");
+        });
+
+        tabDiv.addEventListener("dragleave", (e) => {
+          e.currentTarget.classList.remove("drag-over");
+        });
+
+        tabDiv.addEventListener("drop", (e) => {
+          e.preventDefault();
+          e.currentTarget.classList.remove("drag-over");
+          const data = JSON.parse(e.dataTransfer.getData("application/json"));
+          
+          // Only move if it's a different tab within the same window
+          if (data.tabId !== tab.id && data.windowId === tab.windowId) {
+            browser.runtime.sendMessage({
+              type: "MOVE_TAB",
+              tabId: data.tabId,
+              windowId: tab.windowId,
+              index: tab.index
+            }).then(fetchTabs);
+          }
+        });
+
         tabDiv.addEventListener("click", () => {
           browser.runtime.sendMessage({ type: "ACTIVATE_TAB", id: tab.id, windowId: tab.windowId });
           closeOverlay();
         });
+
         tabsList.appendChild(tabDiv);
       });
       winDiv.appendChild(tabsList);
@@ -244,7 +297,6 @@
     });
   }
 
-  // Updated search to include URLs.
   searchInput.addEventListener("input", () => {
     const filter = searchInput.value.toLowerCase();
     const tabs = shadowRoot.querySelectorAll('.tab');
@@ -255,7 +307,6 @@
         tab.style.display = isMatch ? "flex" : "none";
     });
 
-    // Hide window cards if all their tabs are hidden.
     shadowRoot.querySelectorAll('.window').forEach(windowDiv => {
         const visibleTabs = windowDiv.querySelectorAll('.tab[style*="display: flex"]');
         windowDiv.style.display = visibleTabs.length > 0 ? "block" : "none";
