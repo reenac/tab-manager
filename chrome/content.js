@@ -38,7 +38,7 @@
 
   const settingsIconSvg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20px" height="20px">
-      <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+      <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61-.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
     </svg>
   `;
 
@@ -90,7 +90,7 @@
       .window { background-color: var(--bg); border: 1px solid var(--highlight-medium); border-radius: 18px; margin-bottom: 24px; display: block; transition: box-shadow 0.2s; }
       .window-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--text); padding: 12px 18px; border-bottom: 1px solid var(--highlight-medium); margin: 0; text-transform: uppercase; letter-spacing: 0.8px; background-color: var(--highlight-soft); border-radius: 18px 18px 0 0; }
       .tabs-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 8px; }
-      .tab { display: flex; align-items: center; padding: 12px 10px; border-radius: 12px; cursor: pointer; transition: background-color 0.15s, border-top 0.15s; border: 1px solid transparent; border-top: 2px solid transparent; }
+      .tab { display: flex; align-items: center; padding: 12px 10px; border-radius: 12px; cursor: pointer; transition: background-color 0.15s, border 0.15s; border: 1px solid transparent; border-top: 2px solid transparent; }
       .tab:hover { background-color: var(--highlight-soft); }
       .tab.duplicate { background-color: var(--duplicate-bg); }
       .tab.duplicate:hover { background-color: var(--duplicate-bg-hover); }
@@ -106,9 +106,14 @@
       .window-close-btn { background: none; border: none; font-family: 'Times New Roman', Times, serif; font-size: 24px; font-weight: 300; color: var(--accent); cursor: pointer; padding: 0 8px; border-radius: 8px; line-height: 1; transition: background-color 0.15s, color 0.15s; }
       .window-close-btn:hover { background-color: var(--highlight-medium); color: var(--text); }
       
-      /* --- ACTION BUTTON STYLES --- */
-      .action-btn { display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--accent); padding: 8px; border-radius: 50%; transition: background-color 0.2s; }
+      /* --- ACTION BUTTON & SELECTION STYLES --- */
+      .action-btn { display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--accent); padding: 8px; border-radius: 50%; transition: all 0.2s; flex-shrink: 0; }
       .action-btn:hover { background-color: var(--highlight-soft); }
+      #new-window-btn.text-btn { border-radius: 16px; padding: 0 16px; font-weight: 600; background-color: var(--accent); color: var(--bg); }
+      #new-window-btn.text-btn:hover { background-color: color-mix(in srgb, var(--accent) 90%, black); }
+      .tab.selected { background-color: var(--highlight-medium); border-color: var(--accent); }
+      .tab.selected:hover { background-color: color-mix(in srgb, var(--highlight-medium) 90%, var(--accent)); }
+
       #settings-container { position: relative; flex-shrink: 0; }
       #settings-panel { display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--bg); border: 1px solid var(--highlight-medium); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10; }
       #settings-panel.visible { display: block; }
@@ -194,9 +199,21 @@
   });
 
   newWindowBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'CREATE_NEW_WINDOW' }, () => {
-      fetchTabs(); // Refresh the list to show the new window
-    });
+    const selectedTabs = shadowRoot.querySelectorAll('.tab.selected');
+    
+    if (selectedTabs.length > 0) {
+      const tabIds = Array.from(selectedTabs).map(tabEl => parseInt(tabEl.getAttribute('data-tab-id')));
+      chrome.runtime.sendMessage({ type: 'MOVE_TABS_TO_NEW_WINDOW', tabIds }, () => {
+        // **FIX**: Reset the button state immediately for better UX
+        shadowRoot.querySelectorAll('.tab.selected').forEach(t => t.classList.remove('selected'));
+        updateNewWindowButtonState();
+        fetchTabs();
+      });
+    } else {
+      chrome.runtime.sendMessage({ type: 'CREATE_NEW_WINDOW' }, () => {
+        fetchTabs();
+      });
+    }
   });
 
   shadowRoot.querySelectorAll('input[name="theme"]').forEach(radio => {
@@ -204,6 +221,19 @@
       saveAndApplyTheme(e.target.value);
     });
   });
+
+  function updateNewWindowButtonState() {
+    const selectedTabs = shadowRoot.querySelectorAll('.tab.selected');
+    if (selectedTabs.length > 0) {
+      newWindowBtn.innerHTML = `Move ${selectedTabs.length} Tabs`;
+      newWindowBtn.title = 'Move selected tabs to a new window';
+      newWindowBtn.classList.add('text-btn');
+    } else {
+      newWindowBtn.innerHTML = newWindowIconSvg;
+      newWindowBtn.title = 'Create New Window';
+      newWindowBtn.classList.remove('text-btn');
+    }
+  }
 
 
   function renderTabs(windows) {
@@ -314,9 +344,16 @@
           }
         });
 
-        tabDiv.addEventListener("click", () => {
-          chrome.runtime.sendMessage({ type: "ACTIVATE_TAB", id: tab.id, windowId: tab.windowId });
-          closeOverlay();
+        tabDiv.addEventListener("click", (e) => {
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            tabDiv.classList.toggle('selected');
+            updateNewWindowButtonState();
+          } else {
+            chrome.runtime.sendMessage({ type: "ACTIVATE_TAB", id: tab.id, windowId: tab.windowId });
+            closeOverlay();
+          }
         });
 
         tabsList.appendChild(tabDiv);

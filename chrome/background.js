@@ -2,7 +2,7 @@
  * background.js (for Chrome)
  *
  * Handles extension icon clicks and messages from the content script,
- * including the logic for creating new windows.
+ * including the logic for moving tabs and creating new windows.
  */
 
 // Listener for when the user clicks the extension's action button.
@@ -69,10 +69,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       break;
 
-    // **NEW**: Creates a new window with a specific URL.
+    // Creates a new window with a specific URL.
     case "CREATE_NEW_WINDOW":
       chrome.windows.create({ url: "https://www.google.com" }, () => sendResponse());
       return true;
+
+    // **FIXED**: Creates a new window and moves a group of tabs to it.
+    case "MOVE_TABS_TO_NEW_WINDOW":
+      if (message.tabIds && message.tabIds.length > 0) {
+        const [firstTab, ...remainingTabs] = message.tabIds;
+        // Create a new window with the first tab.
+        chrome.windows.create({ tabId: firstTab }, (newWindow) => {
+          // If there are other tabs, move them into the new window.
+          if (remainingTabs.length > 0 && newWindow) {
+            chrome.tabs.move(remainingTabs, { windowId: newWindow.id, index: -1 }, () => {
+              // Only send the response after the move is complete.
+              sendResponse();
+            });
+          } else {
+            // If there were no other tabs, send the response now.
+            sendResponse();
+          }
+        });
+        return true;
+      }
+      break;
   }
 });
 
