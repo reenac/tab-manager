@@ -3,7 +3,7 @@
   "name": "Tab Commander",
   "version": "1.0",
   "description": "Fullscreen overlay showing tab titles, duplicates, and search",
-  "permissions": ["tabs", "scripting", "activeTab", "windows"],
+  "permissions": ["tabs", "scripting", "activeTab", "windows", "storage"],
   "action": {
     "default_title": "Open Tab Overlay"
   },
@@ -12,5 +12,4 @@
   },
   "host_permissions": ["<all_urls>"]
 }
-
 
