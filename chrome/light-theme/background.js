@@ -10,6 +10,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   // Prevent the script from running on special Chrome pages.
   if (!tab || !tab.id || tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) {
     console.warn("This extension cannot run on internal Chrome pages.");
+    // Using console.warn instead of alert for a less intrusive experience.
     return;
   }
 
@@ -38,7 +39,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Closes a specific tab.
     case "CLOSE_TAB":
       if (message.id) {
-        chrome.tabs.remove(message.id);
+        chrome.tabs.remove(message.id, () => sendResponse());
+        return true;
       }
       break;
 
@@ -50,13 +52,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       break;
 
-    // Moves a tab to a new position within a window.
+    // Moves a tab to a new position, potentially in a new window.
     case "MOVE_TAB":
       if (message.tabId && message.windowId) {
         chrome.tabs.move(message.tabId, {
           windowId: message.windowId,
           index: message.index
-        }, () => sendResponse()); // Use callback for Chrome
+        }, () => sendResponse());
         return true;
       }
       break;
