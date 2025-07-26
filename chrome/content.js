@@ -42,6 +42,12 @@
     </svg>
   `;
 
+  const newWindowIconSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20px" height="20px">
+        <path d="M19 19V5H5v14h14zM3 3h18v18H3V3zm10 4h-2v4H7v2h4v4h2v-4h4v-2h-4V7z"/>
+    </svg>
+  `;
+
   shadowRoot.innerHTML = `
     <style>
       /* --- THEME DEFINITIONS --- */
@@ -72,7 +78,6 @@
       #tab-overlay-container { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2147483646; }
       #tab-overlay-box { font-size: 14px; width: 95vw; height: 90vh; max-width: 1200px; background: var(--bg); color: var(--text); border-radius: 24px; border: 1px solid var(--highlight-medium); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow: hidden; }
       
-      /* **UPDATED**: Container for search and settings */
       #top-bar { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
       #search { flex-grow: 1; font-size: 16px; padding: 14px 20px; background-color: var(--highlight-soft); color: var(--text); border: 1px solid var(--highlight-medium); border-radius: 16px; outline: none; transition: box-shadow 0.2s, border-color 0.2s; }
       #search::placeholder { color: var(--accent); opacity: 0.8; }
@@ -101,10 +106,10 @@
       .window-close-btn { background: none; border: none; font-family: 'Times New Roman', Times, serif; font-size: 24px; font-weight: 300; color: var(--accent); cursor: pointer; padding: 0 8px; border-radius: 8px; line-height: 1; transition: background-color 0.15s, color 0.15s; }
       .window-close-btn:hover { background-color: var(--highlight-medium); color: var(--text); }
       
-      /* --- SETTINGS STYLES --- */
+      /* --- ACTION BUTTON STYLES --- */
+      .action-btn { display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--accent); padding: 8px; border-radius: 50%; transition: background-color 0.2s; }
+      .action-btn:hover { background-color: var(--highlight-soft); }
       #settings-container { position: relative; flex-shrink: 0; }
-      #settings-btn { display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--accent); padding: 8px; border-radius: 50%; transition: background-color 0.2s; }
-      #settings-btn:hover { background-color: var(--highlight-soft); }
       #settings-panel { display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--bg); border: 1px solid var(--highlight-medium); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10; }
       #settings-panel.visible { display: block; }
       #settings-panel h3 { font-size: 14px; margin: 0 0 12px 0; color: var(--text); }
@@ -117,8 +122,9 @@
       <div id="tab-overlay-box">
         <div id="top-bar">
           <input type="text" id="search" placeholder="Search tabs by title or URL..." />
+          <button id="new-window-btn" class="action-btn" title="Create New Window">${newWindowIconSvg}</button>
           <div id="settings-container">
-            <button id="settings-btn" title="Settings">${settingsIconSvg}</button>
+            <button id="settings-btn" class="action-btn" title="Settings">${settingsIconSvg}</button>
             <div id="settings-panel">
               <h3>Theme</h3>
               <div class="theme-option">
@@ -148,6 +154,7 @@
   const searchInput = shadowRoot.getElementById("search");
   const settingsBtn = shadowRoot.getElementById("settings-btn");
   const settingsPanel = shadowRoot.getElementById("settings-panel");
+  const newWindowBtn = shadowRoot.getElementById("new-window-btn");
   shadowRoot.getElementById('tab-overlay-dim').addEventListener('click', closeOverlay);
 
   // --- THEME LOGIC ---
@@ -181,9 +188,15 @@
     }
   });
   
-  // --- SETTINGS PANEL LOGIC ---
+  // --- SETTINGS & NEW WINDOW LOGIC ---
   settingsBtn.addEventListener('click', () => {
     settingsPanel.classList.toggle('visible');
+  });
+
+  newWindowBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'CREATE_NEW_WINDOW' }, () => {
+      fetchTabs(); // Refresh the list to show the new window
+    });
   });
 
   shadowRoot.querySelectorAll('input[name="theme"]').forEach(radio => {
@@ -234,6 +247,7 @@
       win.tabs.forEach(tab => {
         const tabDiv = document.createElement("div");
         tabDiv.className = "tab";
+        tabDiv.setAttribute('data-tab-id', tab.id);
         tabDiv.setAttribute('data-full-title', tab.title || '');
         tabDiv.setAttribute('data-url', tab.url || '');
 

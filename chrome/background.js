@@ -2,7 +2,7 @@
  * background.js (for Chrome)
  *
  * Handles extension icon clicks and messages from the content script,
- * including the logic for moving and closing windows.
+ * including the logic for creating new windows.
  */
 
 // Listener for when the user clicks the extension's action button.
@@ -32,7 +32,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.windows.getAll({ populate: true }, (windows) => {
         sendResponse(windows);
       });
-      return true; // Indicates an asynchronous response.
+      return true;
 
     // Closes a specific tab.
     case "CLOSE_TAB":
@@ -61,13 +61,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       break;
 
-    // **NEW**: Closes an entire window.
+    // Closes an entire window.
     case "CLOSE_WINDOW":
       if (message.windowId) {
         chrome.windows.remove(message.windowId, () => sendResponse());
         return true;
       }
       break;
+
+    // **NEW**: Creates a new window with a specific URL.
+    case "CREATE_NEW_WINDOW":
+      chrome.windows.create({ url: "https://www.google.com" }, () => sendResponse());
+      return true;
   }
 });
 
