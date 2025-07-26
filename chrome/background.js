@@ -50,10 +50,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       break;
 
-    // Moves a tab to a new position, potentially in a new window.
+    // **UPDATED**: Moves a single tab or an array of tabs.
     case "MOVE_TAB":
-      if (message.tabId && message.windowId) {
-        chrome.tabs.move(message.tabId, {
+      if (message.tabIds && message.tabIds.length > 0 && message.windowId) {
+        chrome.tabs.move(message.tabIds, {
           windowId: message.windowId,
           index: message.index
         }, () => sendResponse());
@@ -74,20 +74,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.windows.create({ url: "https://www.google.com" }, () => sendResponse());
       return true;
 
-    // **FIXED**: Creates a new window and moves a group of tabs to it.
+    // Creates a new window and moves a group of tabs to it.
     case "MOVE_TABS_TO_NEW_WINDOW":
       if (message.tabIds && message.tabIds.length > 0) {
         const [firstTab, ...remainingTabs] = message.tabIds;
-        // Create a new window with the first tab.
         chrome.windows.create({ tabId: firstTab }, (newWindow) => {
-          // If there are other tabs, move them into the new window.
           if (remainingTabs.length > 0 && newWindow) {
             chrome.tabs.move(remainingTabs, { windowId: newWindow.id, index: -1 }, () => {
-              // Only send the response after the move is complete.
               sendResponse();
             });
           } else {
-            // If there were no other tabs, send the response now.
             sendResponse();
           }
         });

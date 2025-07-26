@@ -109,10 +109,10 @@
       /* --- ACTION BUTTON & SELECTION STYLES --- */
       .action-btn { display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--accent); padding: 8px; border-radius: 50%; transition: all 0.2s; flex-shrink: 0; }
       .action-btn:hover { background-color: var(--highlight-soft); }
-      #new-window-btn.text-btn { border-radius: 16px; padding: 0 16px; font-weight: 600; background-color: var(--accent); color: var(--bg); }
-      #new-window-btn.text-btn:hover { background-color: color-mix(in srgb, var(--accent) 90%, black); }
       .tab.selected { background-color: var(--highlight-medium); border-color: var(--accent); }
       .tab.selected:hover { background-color: color-mix(in srgb, var(--highlight-medium) 90%, var(--accent)); }
+      #selection-counter { display: none; background-color: var(--accent); color: var(--bg); border-radius: 50%; width: 24px; height: 24px; font-size: 12px; font-weight: bold; align-items: center; justify-content: center; flex-shrink: 0; }
+      #selection-counter.visible { display: flex; }
 
       #settings-container { position: relative; flex-shrink: 0; }
       #settings-panel { display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--bg); border: 1px solid var(--highlight-medium); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10; }
@@ -127,6 +127,7 @@
       <div id="tab-overlay-box">
         <div id="top-bar">
           <input type="text" id="search" placeholder="Search tabs by title or URL..." />
+          <div id="selection-counter"></div>
           <button id="new-window-btn" class="action-btn" title="Create New Window">${newWindowIconSvg}</button>
           <div id="settings-container">
             <button id="settings-btn" class="action-btn" title="Settings">${settingsIconSvg}</button>
@@ -160,6 +161,7 @@
   const settingsBtn = shadowRoot.getElementById("settings-btn");
   const settingsPanel = shadowRoot.getElementById("settings-panel");
   const newWindowBtn = shadowRoot.getElementById("new-window-btn");
+  const selectionCounter = shadowRoot.getElementById("selection-counter");
   shadowRoot.getElementById('tab-overlay-dim').addEventListener('click', closeOverlay);
 
   // --- THEME LOGIC ---
@@ -204,9 +206,8 @@
     if (selectedTabs.length > 0) {
       const tabIds = Array.from(selectedTabs).map(tabEl => parseInt(tabEl.getAttribute('data-tab-id')));
       chrome.runtime.sendMessage({ type: 'MOVE_TABS_TO_NEW_WINDOW', tabIds }, () => {
-        // **FIX**: Reset the button state immediately for better UX
         shadowRoot.querySelectorAll('.tab.selected').forEach(t => t.classList.remove('selected'));
-        updateNewWindowButtonState();
+        updateSelectionState();
         fetchTabs();
       });
     } else {
@@ -222,16 +223,16 @@
     });
   });
 
-  function updateNewWindowButtonState() {
+  // **UPDATED**: Function to update the selection counter
+  function updateSelectionState() {
     const selectedTabs = shadowRoot.querySelectorAll('.tab.selected');
     if (selectedTabs.length > 0) {
-      newWindowBtn.innerHTML = `Move ${selectedTabs.length} Tabs`;
+      selectionCounter.textContent = selectedTabs.length;
+      selectionCounter.classList.add('visible');
       newWindowBtn.title = 'Move selected tabs to a new window';
-      newWindowBtn.classList.add('text-btn');
     } else {
-      newWindowBtn.innerHTML = newWindowIconSvg;
+      selectionCounter.classList.remove('visible');
       newWindowBtn.title = 'Create New Window';
-      newWindowBtn.classList.remove('text-btn');
     }
   }
 
@@ -316,7 +317,18 @@
         tabDiv.setAttribute("draggable", "true");
 
         tabDiv.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("application/json", JSON.stringify({ tabId: tab.id }));
+          const selectedTabs = shadowRoot.querySelectorAll('.tab.selected');
+          let tabIdsToMove;
+
+          if (selectedTabs.length > 0 && e.currentTarget.classList.contains('selected')) {
+            tabIdsToMove = Array.from(selectedTabs).map(t => parseInt(t.getAttribute('data-tab-id')));
+          } else {
+            shadowRoot.querySelectorAll('.tab.selected').forEach(t => t.classList.remove('selected'));
+            updateSelectionState();
+            tabIdsToMove = [tab.id];
+          }
+          
+          e.dataTransfer.setData("application/json", JSON.stringify({ tabIds: tabIdsToMove }));
           e.dataTransfer.effectAllowed = "move";
           e.currentTarget.classList.add("dragging");
         });
@@ -339,8 +351,9 @@
           e.stopPropagation();
           e.currentTarget.classList.remove("drag-over-tab");
           const data = JSON.parse(e.dataTransfer.getData("application/json"));
-          if (data.tabId !== tab.id) {
-            chrome.runtime.sendMessage({ type: "MOVE_TAB", tabId: data.tabId, windowId: win.id, index: tab.index }, () => fetchTabs());
+          
+          if (!data.tabIds.includes(tab.id)) {
+            chrome.runtime.sendMessage({ type: "MOVE_TAB", tabIds: data.tabIds, windowId: win.id, index: tab.index }, () => fetchTabs());
           }
         });
 
@@ -349,7 +362,7 @@
             e.preventDefault();
             e.stopPropagation();
             tabDiv.classList.toggle('selected');
-            updateNewWindowButtonState();
+            updateSelectionState();
           } else {
             chrome.runtime.sendMessage({ type: "ACTIVATE_TAB", id: tab.id, windowId: tab.windowId });
             closeOverlay();
@@ -369,11 +382,12 @@
       winDiv.addEventListener("dragleave", (e) => {
         e.currentTarget.classList.remove("drag-over-window");
       });
+      
       winDiv.addEventListener("drop", (e) => {
         e.preventDefault();
         e.currentTarget.classList.remove("drag-over-window");
         const data = JSON.parse(e.dataTransfer.getData("application/json"));
-        chrome.runtime.sendMessage({ type: "MOVE_TAB", tabId: data.tabId, windowId: win.id, index: -1 }, () => fetchTabs());
+        chrome.runtime.sendMessage({ type: "MOVE_TAB", tabIds: data.tabIds, windowId: win.id, index: -1 }, () => fetchTabs());
       });
     });
   }
