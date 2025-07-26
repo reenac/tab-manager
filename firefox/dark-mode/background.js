@@ -1,14 +1,20 @@
 /**
  * background.js (for Firefox)
  *
- * Handles extension icon clicks and messages from the content script.
+ * Handles extension icon clicks and messages from the content script,
+ * including the logic for moving tabs.
  */
 
 // Listener for when the user clicks the extension's action button.
 browser.action.onClicked.addListener(async (tab) => {
-  // Prevent the script from running on special Firefox pages.
-  if (!tab || !tab.id || tab.url.startsWith("about:") || tab.url.startsWith("moz-extension://")) {
-    console.warn("This extension cannot run on internal Firefox pages.");
+  // **UPDATED**: Allow the extension to run on the "New Tab" page.
+  // It will still be blocked on other protected "about:" pages for security.
+  const isProtectedUrl = (url) => {
+    return (url.startsWith("about:") && url !== "about:newtab" && url !== "about:blank") || url.startsWith("moz-extension://");
+  };
+
+  if (!tab || !tab.id || isProtectedUrl(tab.url)) {
+    console.warn(`This extension cannot run on the page: ${tab.url}`);
     return;
   }
 
@@ -48,7 +54,17 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
         browser.windows.update(message.windowId, { focused: true });
       }
       break;
+
+    // Moves a tab to a new position within a window.
+    case "MOVE_TAB":
+      if (message.tabId && message.windowId) {
+        browser.tabs.move(message.tabId, {
+          windowId: message.windowId,
+          index: message.index
+        }).then(sendResponse);
+        return true;
+      }
+      break;
   }
 });
-
 
