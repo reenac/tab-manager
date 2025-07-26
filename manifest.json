@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Commander",
+  "version": "1.0",
+  "description": "Fullscreen overlay showing tab titles, duplicates, and search",
+  "permissions": ["tabs", "scripting", "activeTab", "windows"],
+  "action": {
+    "default_title": "Open Tab Overlay"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": ["<all_urls>"]
+}
