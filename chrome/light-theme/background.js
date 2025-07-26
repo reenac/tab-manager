@@ -10,7 +10,6 @@ chrome.action.onClicked.addListener(async (tab) => {
   // Prevent the script from running on special Chrome pages.
   if (!tab || !tab.id || tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) {
     console.warn("This extension cannot run on internal Chrome pages.");
-    // Using console.warn instead of alert for a less intrusive experience.
     return;
   }
 
@@ -33,8 +32,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.windows.getAll({ populate: true }, (windows) => {
         sendResponse(windows);
       });
-      // Return true to indicate that the response will be sent asynchronously.
-      return true;
+      return true; // Indicates an asynchronous response.
 
     // Closes a specific tab.
     case "CLOSE_TAB":
