@@ -21,6 +21,14 @@
   const html = document.createElement("div");
   html.innerHTML = `
     <style>
+      :host {
+        --cerulean: #227c9dff;
+        --light-sea-green: #17c3b2ff;
+        --sunset: #ffcb77ff;
+        --floral-white: #fef9efff;
+        --light-red: #fe6d73ff;
+      }
+
 #scroll-clip {
   border-radius: 0 0 16px 16px;
   margin-top: 10px;
@@ -103,7 +111,81 @@
         border-top: 1px solid #ccc;
         padding-top: 16px;
       }
+      
       .tab {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 6px;
+        margin: 2px 0;
+        border-radius: 4px;
+        background-color: transparent;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        color: var(--cerulean);
+        position: relative;
+      }
+      .tab:hover {
+        background-color: #bee1e6 !important;
+        color: black !important;
+      }
+      .tab.duplicate {
+        background-color: var(--light-red);
+        color: white;
+      }
+      .tab.dragging {
+        opacity: 0.5;
+        outline: 1px dashed var(--cerulean);
+      }
+      .tab button {
+        visibility: hidden;
+        position: absolute;
+        top: 50%;
+        right: 6px;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        font-size: 18px;
+        font-weight: normal;
+        color: #333;
+        cursor: pointer;
+        padding: 0;
+        margin: 0;
+      }
+      .tab:hover button {
+        visibility: visible;
+      }
+      .tab button:hover {
+        font-weight: bold;
+      }
+      .tab button:focus,
+      .tab button:active {
+        outline: none !important;
+        box-shadow: none !important;
+      }
+    
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 6px;
+        margin: 2px 0;
+        border-radius: 4px;
+        background-color: transparent;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .tab:hover {
+        background-color: #eee;
+      }
+      .tab.duplicate {
+        background-color: #ffe4e4;
+      }
+      .tab.dragging {
+        opacity: 0.5;
+        outline: 1px dashed #aaa;
+      }
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -131,7 +213,12 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .tab button {
+      
+      .tab.dragging {
+        opacity: 0.5;
+        outline: 2px dashed #888;
+      }
+    .tab button {
         margin-left: 6px;
       }
     </style>
@@ -169,8 +256,10 @@
 
         const titleWrapper = document.createElement("span");
         const favicon = document.createElement("img");
-        favicon.src = tab.favIconUrl || "";
-        favicon.onerror = () => favicon.remove();
+        favicon.src = tab.favIconUrl || "https://www.google.com/chrome/static/images/favicons/favicon-96x96.png";
+        favicon.onerror = () => {
+          favicon.src = "https://www.google.com/chrome/static/images/favicons/favicon-96x96.png";
+        };
         const safeTitle = tab.title ? tab.title.slice(0, 50) : "Untitled";
         tabDiv.setAttribute('data-full-title', tab.title || '');
         tabDiv.setAttribute('data-url', tab.url || '');
@@ -190,6 +279,12 @@
         
         tabDiv.appendChild(closeBtn);
         tabDiv.setAttribute("draggable", "true");
+        tabDiv.addEventListener("dragstart", (e) => {
+          tabDiv.classList.add("dragging");
+        });
+        tabDiv.addEventListener("dragend", () => {
+          tabDiv.classList.remove("dragging");
+        });
         tabDiv.addEventListener("dragstart", (e) => {
           e.dataTransfer.setData("text/plain", JSON.stringify({
             tabId: tab.id,
