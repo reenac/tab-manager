@@ -1,0 +1,117 @@
+:host {
+  --bg: #222;
+  --text: #eee;
+  --highlight-soft: #333;
+  --highlight-medium: #444;
+  --accent: #66fcf1;
+  --border-color: #555;
+  --duplicate-color: #ffc107;
+  --active-color: #66fcf1; /* Mint/Cyan accent color */
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg);
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  font-family: sans-serif;
+}
+
+#windows-list {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  overflow-y: auto;
+  padding-top: 16px;
+}
+
+.window-container {
+  background-color: var(--highlight-soft);
+  border-radius: 8px;
+  padding: 12px;
+  flex: 1 1 300px; /* Flexbox for responsive columns */
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+
+.window-title {
+  color: var(--text);
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: bold;
+  opacity: 0.8;
+}
+
+.tabs-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background-color: var(--highlight-medium);
+  border: 1px solid transparent;
+  border-left: 3px solid transparent; /* Reserve space for indicators */
+  color: var(--text);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab:hover {
+  background-color: color-mix(in srgb, var(--highlight-medium) 80%, #fff);
+}
+
+.favicon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- INDICATOR STYLES --- */
+
+/* Existing style for selected tabs */
+.tab.selected { 
+  background-color: var(--highlight-medium); 
+  border-color: var(--accent); 
+}
+
+/* Existing style for duplicates */
+.tab.duplicate {
+  border-left-color: var(--duplicate-color);
+}
+
+/* 
+ * --- MODIFICATION START ---
+ * New style to highlight the single active tab in each window list.
+ * It gets a colored left border and a subtle background glow.
+*/
+.tab.active {
+  border-left-color: var(--active-color);
+  background-color: rgba(102, 252, 241, 0.1);
+}
+/* --- MODIFICATION END --- */
+
+/* You can even combine them for a selected active tab */
+.tab.active.selected {
+    border-color: var(--active-color);
+}
+

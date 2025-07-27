@@ -1,259 +1,411 @@
 (() => {
-  if (document.getElementById("tab-overlay-shadow-host")) return;
+  // Prevent duplicate injections
+  if (document.querySelector("#tab-commander-overlay")) return;
 
-  // ESC to close overlay
-  const escHandler = (e) => {
-    if (e.key === "Escape") {
-      document.getElementById("tab-overlay-shadow-host")?.remove();
-      window.removeEventListener("keydown", escHandler);
-    }
-  };
-  window.addEventListener("keydown", escHandler);
-
-  // Create shadow host and shadow root
-  const host = document.createElement("div");
-  host.id = "tab-overlay-shadow-host";
-  document.body.appendChild(host);
-
-  const shadowRoot = host.attachShadow({ mode: "open" });
-
-  // HTML template
-  const html = document.createElement("div");
-  html.innerHTML = `
+  const overlay = document.createElement("div");
+  overlay.id = "tab-commander-overlay";
+  
+  const shadowRoot = overlay.attachShadow({ mode: "open" });
+  
+  shadowRoot.innerHTML = `
     <style>
-#scroll-clip {
-  border-radius: 0 0 16px 16px;
-  margin-top: 10px;
-  overflow: hidden;
-  border-radius: 16px;
-  height: 100%;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-}
-#scroll-area {
-  overflow-y: auto;
-  flex-grow: 1;
-  padding-right: 6px;
-}
-
-      * {
-        box-sizing: border-box;
-        font-family: system-ui, sans-serif;
-        font-size: 14px;
-        color: black;
-        line-height: 1.4;
-      }
-      #tab-overlay-dim {
+      :host {
         position: fixed;
-        inset: 0;
-        background-color: rgba(0, 0, 0, 0.4);
-        z-index: 2147483647;
-      }
-      #tab-overlay-container {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2147483647;
-      }
-      #tab-overlay-box {
-  padding-top: 16px;
-        width: 95vw;
-        max-width: 1200px;
-        min-width: 800px;
-        height: 90vh;
-        background: white;
-        border-radius: 16px;
-        padding: 20px;
-        overflow-y: auto;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-        display: flex;
-        flex-direction: column;
-      }
-      #search {
-  margin: 0;
-  border-radius: 8px;
-  width: 100%;
-  background: white;
-  margin-bottom: 10px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-        position: sticky;
         top: 0;
-        background: white;
-        z-index: 10000;
-        margin-bottom: 10px;
-        padding: 8px;
-        border: 1px solid #ccc;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 999999;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #e0e0e0;
       }
-      #tab-container {
-        flex-grow: 1;
+      
+      .container {
+        max-width: 90%;
+        margin: 50px auto;
+        padding: 20px;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
       }
-      .window {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        margin-bottom: 32px;
-        border-top: 1px solid #ccc;
-        padding-top: 16px;
+      
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
       }
-      .tab {
+      
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+        color: #fff;
+      }
+      
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      
+      .action-btn {
+        background: #444;
+        border: none;
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s;
         display: flex;
         align-items: center;
+        gap: 5px;
+      }
+      
+      .action-btn:hover {
+        background: #555;
+      }
+      
+      .action-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+      
+      .selection-counter {
+        background: #2196F3;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        display: none;
+      }
+      
+      .selection-counter.visible {
+        display: block;
+      }
+      
+      .search-container {
+        margin-bottom: 20px;
+      }
+      
+      .search-input {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        background: #2a2a2a;
+        border: 1px solid #444;
+        color: #fff;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      
+      .search-input:focus {
+        outline: none;
+        border-color: #4a9eff;
+      }
+      
+      .tab-container {
+        display: grid;
+        gap: 20px;
+      }
+      
+      .window {
+        background: #1a1a1a;
+        border-radius: 8px;
+        padding: 15px;
+        border: 1px solid #333;
+      }
+      
+      .window-header {
+        display: flex;
         justify-content: space-between;
-        padding: 5px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        background-color: #f9f9f9;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #333;
+      }
+      
+      .window-title-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+      }
+      
+      .window-title {
+        font-weight: bold;
+        color: #fff;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: background 0.2s;
+      }
+      
+      .window-title:hover {
+        background: #333;
+      }
+      
+      .window-name-input {
+        background: #2a2a2a;
+        border: 1px solid #444;
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: bold;
+        max-width: 300px;
+        width: auto;
+      }
+      
+      .window-name-input:focus {
+        outline: none;
+        border-color: #4a9eff;
+      }
+      
+      .close-window-btn {
+        background: #d32f2f;
+        border: none;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background 0.2s;
+      }
+      
+      .close-window-btn:hover {
+        background: #f44336;
+      }
+      
+      .tabs-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 10px;
+      }
+      
+      .tab {
+        background: #2a2a2a;
+        padding: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .tab:hover {
+        background: #333;
+        transform: translateY(-2px);
+      }
+      
+      .tab.selected {
+        border-color: #4a9eff;
+        background: #1e3a5f;
+      }
+      
+      .tab.active-tab {
+        background: #a6fbb2;
+        color: #000;
+      }
+      
+      .tab.active-tab:hover {
+        background: #8fdb9a;
+      }
+      
+      .tab.active-tab .tab-url {
+        color: #333;
+      }
+      
+      .tab.duplicate {
+        border-color: #ff9800;
+      }
+      
+      .tab.hidden {
+        display: none;
+      }
+      
+      .tab-favicon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      
+      .tab-content {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .tab-title {
+        font-weight: 500;
+        margin-bottom: 4px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 100%;
-        cursor: pointer;
       }
-      .tab.duplicate {
-        background-color: #ffe4e4;
-      }
-      .tab img {
-        width: 16px;
-        height: 16px;
-        margin-right: 6px;
-        flex-shrink: 0;
-      }
-      .tab span {
-        flex-grow: 1;
+      
+      .tab-url {
+        font-size: 12px;
+        color: #888;
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .tab button {
-        margin-left: 6px;
+      
+      .close-tab {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: #666;
+        border: none;
+        color: white;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        transition: background 0.2s;
+      }
+      
+      .close-tab:hover {
+        background: #d32f2f;
+      }
+      
+      .settings-panel {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 20px;
+        min-width: 200px;
+        display: none;
+        z-index: 1000;
+      }
+      
+      .settings-panel.visible {
+        display: block;
+      }
+      
+      .settings-panel h3 {
+        margin: 0 0 15px 0;
+        color: #fff;
+        font-size: 16px;
+      }
+      
+      .theme-options {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .theme-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .theme-option input[type="radio"] {
+        cursor: pointer;
+      }
+      
+      .theme-option label {
+        cursor: pointer;
+        color: #e0e0e0;
+      }
+      
+      /* Light theme overrides */
+      :host(.light-theme) {
+        background: rgba(255, 255, 255, 0.95);
+        color: #333;
+      }
+      
+      :host(.light-theme) .window {
+        background: #f5f5f5;
+        border-color: #ddd;
+      }
+      
+      :host(.light-theme) .window-header {
+        border-bottom-color: #ddd;
+      }
+      
+      :host(.light-theme) .window-title {
+        color: #333;
+      }
+      
+      :host(.light-theme) .window-title:hover {
+        background: #e0e0e0;
+      }
+      
+      :host(.light-theme) .window-name-input {
+        background: #fff;
+        border-color: #ddd;
+        color: #333;
+      }
+      
+      :host(.light-theme) .tab {
+        background: #fff;
+      }
+      
+      :host(.light-theme) .tab:hover {
+        background: #f0f0f0;
+      }
+      
+      :host(.light-theme) .tab.selected {
+        background: #e3f2fd;
+      }
+      
+      :host(.light-theme) .tab-title {
+        color: #333;
+      }
+      
+      :host(.light-theme) .tab-url {
+        color: #666;
+      }
+      
+      :host(.light-theme) .search-input {
+        background: #fff;
+        border-color: #ddd;
+        color: #333;
+      }
+      
+      :host(.light-theme) .settings-panel {
+        background: #f5f5f5;
+        border-color: #ddd;
+      }
+      
+      :host(.light-theme) .settings-panel h3 {
+        color: #333;
+      }
+      
+      :host(.light-theme) .theme-option label {
+        color: #333;
+      }
+      
+      :host(.light-theme) .header h1 {
+        color: #333;
+      }
+      
+      :host(.light-theme) .action-btn {
+        background: #e0e0e0;
+        color: #333;
+      }
+      
+      :host(.light-theme) .action-btn:hover {
+        background: #d0d0d0;
       }
     </style>
-    <div id="tab-overlay-dim"></div>
-    <div id="tab-overlay-container">
-      <div id="tab-overlay-box"><div id="scroll-clip"><div id="scroll-area">
-        <input type="text" id="search" placeholder="Search tabs..." />
-        <div id="tab-container"></div></div></div>
-      </div>
-    </div>
-  `;
-
-  shadowRoot.appendChild(html);
-
-  const tabContainer = html.querySelector("#tab-container");
-  const searchInput = html.querySelector("#search");
-
-  function renderTabs(windows) {
-    const allTabs = windows.flatMap(w => w.tabs.map(t => ({ ...t, windowId: w.id })));
-    const titleCount = allTabs.reduce((acc, tab) => {
-      acc[tab.title] = (acc[tab.title] || 0) + 1;
-      return acc;
-    }, {});
-
-    tabContainer.innerHTML = "";
-
-    windows.forEach(win => {
-      const winDiv = document.createElement("div");
-      winDiv.className = "window";
-
-      win.tabs.forEach(tab => {
-        const tabDiv = document.createElement("div");
-        tabDiv.className = "tab";
-        if (titleCount[tab.title] > 1) tabDiv.classList.add("duplicate");
-
-        const titleWrapper = document.createElement("span");
-        const favicon = document.createElement("img");
-        favicon.src = tab.favIconUrl || "";
-        favicon.onerror = () => favicon.remove();
-        const safeTitle = tab.title ? tab.title.slice(0, 50) : "Untitled";
-        tabDiv.setAttribute('data-full-title', tab.title || '');
-        tabDiv.setAttribute('data-url', tab.url || '');
-        const titleText = document.createTextNode(safeTitle);
-        titleWrapper.appendChild(favicon);
-        titleWrapper.appendChild(titleText);
-
-        const closeBtn = document.createElement("button");
-        closeBtn.textContent = "×";
-        closeBtn.onclick = async (e) => {
-          e.stopPropagation();
-          await chrome.runtime.sendMessage({ type: "CLOSE_TAB", id: tab.id });
-          fetchTabs();
-        };
-
-        tabDiv.appendChild(titleWrapper);
-        
-        tabDiv.appendChild(closeBtn);
-        tabDiv.setAttribute("draggable", "true");
-        tabDiv.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("text/plain", JSON.stringify({
-            tabId: tab.id,
-            windowId: tab.windowId,
-            index: tab.index
-          }));
-          e.dataTransfer.effectAllowed = "move";
-        });
-
-        tabDiv.addEventListener("dragover", (e) => {
-          e.preventDefault();
-        });
-
-        tabDiv.addEventListener("drop", (e) => {
-          e.preventDefault();
-          const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-          if (data.tabId !== tab.id && data.windowId === tab.windowId) {
-            chrome.runtime.sendMessage({
-              type: "MOVE_TAB",
-              tabId: data.tabId,
-              windowId: data.windowId,
-              index: tab.index
-            }, () => {
-              fetchTabs();
-            });
-          }
-        });
     
-        tabDiv.addEventListener("click", () => {
-          chrome.runtime.sendMessage({ type: "ACTIVATE_TAB", id: tab.id, windowId: tab.windowId });
-        });
-
-        winDiv.appendChild(tabDiv);
-      });
-
-      tabContainer.appendChild(winDiv);
-    });
-  }
-
-  searchInput.addEventListener("input", () => {
-    const windows = html.querySelectorAll(".window");
-    windows.forEach(windowDiv => {
-      const tabs = windowDiv.querySelectorAll(".tab");
-      let anyVisible = false;
-      tabs.forEach(tab => {
-        const title = tab.getAttribute('data-full-title').toLowerCase();
-      const url = tab.getAttribute('data-url').toLowerCase();
-        const match = title.includes(searchInput.value.toLowerCase()) || url.includes(searchInput.value.toLowerCase());
-        tab.style.display = match ? "" : "none";
-        if (match) anyVisible = true;
-      });
-      windowDiv.style.display = anyVisible ? "grid" : "none";
-    });
-  });
-
-  function fetchTabs() {
-    chrome.runtime.sendMessage({ type: "GET_TABS" }, (windows) => {
-      if (chrome.runtime.lastError) {
-        console.error("Failed to fetch tabs:", chrome.runtime.lastError);
-        return;
-      }
-      renderTabs(windows);
-    });
-  }
-
-  fetchTabs();
-})();
+    <div class="container">
+      <div class="header">
+        <h1>Tab Commander</h1>
+        <div class="action-buttons">
+          <span class="selection-counter" id="selectionCounter">0 selected</span>

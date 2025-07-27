@@ -1,14 +1,8 @@
-/**
- * content.js (for Chrome)
- *
- * Merges Shadow DOM functionality, drag-and-drop, theme settings,
- * and the light theme with layout fixes.
- */
 (() => {
-  // If the overlay already exists, don't create another one.
+  // Prevent duplicate injections
   if (document.getElementById("tab-commander-host")) return;
 
-  // --- Event Handlers ---
+  // Event Handlers
   const escKeyHandler = (e) => {
     if (e.key === "Escape") {
       closeOverlay();
@@ -22,158 +16,500 @@
   function closeOverlay() {
     host.remove();
     window.removeEventListener("keydown", escKeyHandler);
+    chrome.runtime.sendMessage({ type: "OVERLAY_CLOSED" });
   }
 
-  // --- Shadow DOM UI Creation ---
+  // Shadow DOM UI Creation
   document.body.appendChild(host);
   const shadowRoot = host.attachShadow({ mode: "open" });
 
-  const chromeIconSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16px" height="16px">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path>
-      <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"></path>
-      <path d="M12 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"></path>
-    </svg>
-  `;
+  // Chrome icon SVG
+  const chromeIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#888" width="16" height="16">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+  </svg>`;
 
-  const settingsIconSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20px" height="20px">
-      <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61-.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
-    </svg>
-  `;
+  // Fixed settings gear icon
+  const settingsIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+  </svg>`;
 
-  const newWindowIconSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20px" height="20px">
-        <path d="M19 19V5H5v14h14zM3 3h18v18H3V3zm10 4h-2v4H7v2h4v4h2v-4h4v-2h-4V7z"/>
-    </svg>
-  `;
-
-  shadowRoot.innerHTML = `
-    <style>
-      /* --- THEME DEFINITIONS --- */
-      .light-theme {
-        --bg: #ffffffff;
-        --text: #022b3aff;
-        --accent: #1f7a8cff;
-        --highlight-soft: #e1e5f2ff;
-        --highlight-medium: #bfdbf7ff;
-        --duplicate-bg: #fde7ea;
-        --duplicate-bg-hover: #fdd8de;
-        --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-      }
-      .dark-theme {
-        --bg: #1E1E2E;
-        --text: #CDD6F4;
-        --accent: #94E2D5;
-        --highlight-soft: #313244;
-        --highlight-medium: #45475A;
-        --duplicate-bg: #412533;
-        --duplicate-bg-hover: #533042;
-        --font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  // CSS styles function with Refinement 1 implemented
+  function getStyles() {
+    return `
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
 
-      /* --- GENERAL STYLES --- */
-      * { box-sizing: border-box; font-family: var(--font-family); }
-      #tab-overlay-dim { position: fixed; inset: 0; background-color: rgba(2, 43, 58, 0.4); backdrop-filter: blur(5px); z-index: 2147483645; }
-      #tab-overlay-container { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2147483646; }
-      #tab-overlay-box { font-size: 14px; width: 95vw; height: 90vh; max-width: 1200px; background: var(--bg); color: var(--text); border-radius: 24px; border: 1px solid var(--highlight-medium); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow: hidden; }
-      
-      #top-bar { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-      #search { flex-grow: 1; font-size: 16px; padding: 14px 20px; background-color: var(--highlight-soft); color: var(--text); border: 1px solid var(--highlight-medium); border-radius: 16px; outline: none; transition: box-shadow 0.2s, border-color 0.2s; }
-      #search::placeholder { color: var(--accent); opacity: 0.8; }
-      #search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
-      
-      #tab-scroll { overflow-y: auto; flex-grow: 1; padding-right: 8px; }
-      #tab-scroll::-webkit-scrollbar { width: 8px; }
-      #tab-scroll::-webkit-scrollbar-track { background: transparent; }
-      #tab-scroll::-webkit-scrollbar-thumb { background-color: var(--highlight-medium); border-radius: 4px; }
-      .window { background-color: var(--bg); border: 1px solid var(--highlight-medium); border-radius: 18px; margin-bottom: 24px; display: block; transition: box-shadow 0.2s; }
-      .window-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--text); padding: 12px 18px; border-bottom: 1px solid var(--highlight-medium); margin: 0; text-transform: uppercase; letter-spacing: 0.8px; background-color: var(--highlight-soft); border-radius: 18px 18px 0 0; }
-      .tabs-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 8px; }
-      .tab { display: flex; align-items: center; padding: 12px 10px; border-radius: 12px; cursor: pointer; transition: background-color 0.15s, border 0.15s; border: 1px solid transparent; border-top: 2px solid transparent; }
-      .tab:hover { background-color: var(--highlight-soft); }
-      .tab.duplicate { background-color: var(--duplicate-bg); }
-      .tab.duplicate:hover { background-color: var(--duplicate-bg-hover); }
-      .tab.dragging { opacity: 0.5; }
-      .tab.drag-over-tab { border-top: 2px solid var(--accent); }
-      .window.drag-over-window { box-shadow: 0 0 0 3px var(--accent); }
-      .favicon-container { width: 16px; height: 16px; margin-right: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--text); }
-      .favicon-container img, .favicon-container svg { width: 100%; height: 100%; }
-      .tab span { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
-      .tab button { background: none; border: none; font-family: 'Times New Roman', Times, serif; font-size: 24px; font-weight: 300; color: var(--accent); cursor: pointer; padding: 0 8px; border-radius: 8px; opacity: 0; transition: opacity 0.15s, background-color 0.15s, color 0.15s; }
-      .tab:hover button { opacity: 1; }
-      .tab button:hover { background-color: var(--highlight-medium); color: var(--text); }
-      .window-close-btn { background: none; border: none; font-family: 'Times New Roman', Times, serif; font-size: 24px; font-weight: 300; color: var(--accent); cursor: pointer; padding: 0 8px; border-radius: 8px; line-height: 1; transition: background-color 0.15s, color 0.15s; }
-      .window-close-btn:hover { background-color: var(--highlight-medium); color: var(--text); }
-      
-      /* --- ACTION BUTTON & SELECTION STYLES --- */
-      .action-btn { display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--accent); padding: 8px; border-radius: 50%; transition: all 0.2s; flex-shrink: 0; }
-      .action-btn:hover { background-color: var(--highlight-soft); }
-      .tab.selected { background-color: var(--highlight-medium); border-color: var(--accent); }
-      .tab.selected:hover { background-color: color-mix(in srgb, var(--highlight-medium) 90%, var(--accent)); }
-      #selection-counter { display: none; background-color: var(--accent); color: var(--bg); border-radius: 50%; width: 24px; height: 24px; font-size: 12px; font-weight: bold; align-items: center; justify-content: center; flex-shrink: 0; }
-      #selection-counter.visible { display: flex; }
+      :host {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 40px 20px;
+        overflow-y: auto;
+        z-index: 9999999;
+      }
 
-      #settings-container { position: relative; flex-shrink: 0; }
-      #settings-panel { display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--bg); border: 1px solid var(--highlight-medium); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10; }
-      #settings-panel.visible { display: block; }
-      #settings-panel h3 { font-size: 14px; margin: 0 0 12px 0; color: var(--text); }
-      #settings-panel .theme-option { display: flex; align-items: center; margin-bottom: 8px; }
-      #settings-panel input[type="radio"] { margin-right: 8px; }
-      #settings-panel label { color: var(--text); }
-    </style>
-    <div id="tab-overlay-dim"></div>
-    <div id="tab-overlay-container">
-      <div id="tab-overlay-box">
-        <div id="top-bar">
-          <input type="text" id="search" placeholder="Search tabs by title or URL..." />
-          <div id="selection-counter"></div>
-          <button id="new-window-btn" class="action-btn" title="Create New Window">${newWindowIconSvg}</button>
-          <div id="settings-container">
-            <button id="settings-btn" class="action-btn" title="Settings">${settingsIconSvg}</button>
-            <div id="settings-panel">
-              <h3>Theme</h3>
-              <div class="theme-option">
-                <input type="radio" id="light-theme" name="theme" value="light-theme">
-                <label for="light-theme">Light</label>
-              </div>
-              <div class="theme-option">
-                <input type="radio" id="dark-theme" name="theme" value="dark-theme">
-                <label for="dark-theme">Dark</label>
-              </div>
-              <div class="theme-option">
-                <input type="radio" id="system-theme" name="theme" value="system-theme">
-                <label for="system-theme">System</label>
-              </div>
-            </div>
-          </div>
+      :host(.light-theme) {
+        background-color: rgba(255, 255, 255, 0.95);
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        background-color: #1e1e1e;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      :host(.light-theme) .container {
+        background-color: #ffffff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+        color: #fff;
+      }
+
+      :host(.light-theme) .header h1 {
+        color: #333;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .action-btn {
+        padding: 8px 16px;
+        background-color: #333;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .action-btn:hover {
+        background-color: #555;
+      }
+
+      :host(.light-theme) .action-btn {
+        background-color: #e0e0e0;
+        color: #333;
+      }
+
+      :host(.light-theme) .action-btn:hover {
+        background-color: #d0d0d0;
+      }
+
+      .selection-counter {
+        background: #2196F3;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        display: none;
+      }
+
+      .selection-counter.visible {
+        display: inline-block;
+      }
+
+      .search-box {
+        margin-bottom: 20px;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #333;
+        border-radius: 4px;
+        background-color: #2a2a2a;
+        color: #fff;
+      }
+
+      :host(.light-theme) .search-box input {
+        background-color: #f5f5f5;
+        color: #333;
+        border-color: #ddd;
+      }
+
+      .windows-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .window {
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 15px;
+        background-color: #252525;
+      }
+
+      :host(.light-theme) .window {
+        background-color: #f9f9f9;
+        border-color: #ddd;
+      }
+
+      .window-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #333;
+      }
+
+      :host(.light-theme) .window-header {
+        border-bottom-color: #ddd;
+      }
+
+      .window-title-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+      }
+
+      .window-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #fff;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+
+      .window-title:hover {
+        background-color: #333;
+      }
+
+      :host(.light-theme) .window-title {
+        color: #333;
+      }
+
+      :host(.light-theme) .window-title:hover {
+        background-color: #e0e0e0;
+      }
+
+      .window-name-input {
+        font-size: 18px;
+        font-weight: bold;
+        background-color: #2a2a2a;
+        color: #fff;
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 4px 8px;
+        width: auto;
+        max-width: 300px;
+      }
+
+      :host(.light-theme) .window-name-input {
+        background-color: #fff;
+        color: #333;
+        border-color: #ccc;
+      }
+
+      .close-window {
+        padding: 5px 10px;
+        background-color: #d32f2f;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .close-window:hover {
+        background-color: #b71c1c;
+      }
+
+      .tabs-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 10px;
+      }
+
+      .tab {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background-color: #2a2a2a;
+        border: 2px solid transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+      }
+
+      :host(.light-theme) .tab {
+        background-color: #fff;
+        border-color: #e0e0e0;
+      }
+
+      .tab:hover {
+        background-color: #333;
+        transform: translateY(-2px);
+      }
+
+      :host(.light-theme) .tab:hover {
+        background-color: #f5f5f5;
+      }
+
+      /* Refinement 1: Universal highlight colors */
+      .tab.duplicate {
+        background-color: #fde7ea;
+        border-color: #ff9800;
+      }
+
+      .tab.duplicate:hover {
+        background-color: #fdd8de;
+        transform: translateY(-2px);
+      }
+
+      .tab.selected {
+        background-color: #1976d2;
+        border-color: #2196f3;
+      }
+
+      /* Refinement 1: Active tab always mint green regardless of theme */
+      .tab.active-tab {
+        background-color: #a6fbb2;
+        color: #000;
+      }
+
+      .tab.active-tab:hover {
+        background-color: #8fdb9a;
+      }
+
+      :host(.light-theme) .tab.selected {
+        background-color: #bbdefb;
+        border-color: #2196f3;
+      }
+
+      .tab.hidden {
+        display: none;
+      }
+
+      .favicon-container {
+        width: 16px;
+        height: 16px;
+        margin-right: 10px;
+        flex-shrink: 0;
+      }
+
+      .favicon-container img {
+        width: 100%;
+        height: 100%;
+      }
+
+      .tab-title {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #fff;
+      }
+
+      :host(.light-theme) .tab-title {
+        color: #333;
+      }
+
+      .tab.active-tab .tab-title {
+        color: #000;
+      }
+
+      .close-tab {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #555;
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .close-tab:hover {
+        background-color: #d32f2f;
+      }
+
+      :host(.light-theme) .close-tab {
+        background-color: #ccc;
+        color: #333;
+      }
+
+      :host(.light-theme) .close-tab:hover {
+        background-color: #d32f2f;
+        color: #fff;
+      }
+
+      .settings-panel {
+        position: absolute;
+        top: 70px;
+        right: 30px;
+        background-color: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 4px;
+        padding: 15px;
+        display: none;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      :host(.light-theme) .settings-panel {
+        background-color: #fff;
+        border-color: #ddd;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .settings-panel.visible {
+        display: block;
+      }
+
+      .settings-panel h3 {
+        margin-bottom: 10px;
+        color: #fff;
+      }
+
+      :host(.light-theme) .settings-panel h3 {
+        color: #333;
+      }
+
+      .theme-option {
+        margin: 5px 0;
+      }
+
+      .theme-option label {
+        color: #fff;
+        cursor: pointer;
+      }
+
+      :host(.light-theme) .theme-option label {
+        color: #333;
+      }
+
+      #moveToNewWindowBtn {
+        display: none;
+      }
+    `;
+  }
+
+  // CSS injection
+  const styleElement = document.createElement('style');
+  styleElement.textContent = getStyles();
+  shadowRoot.appendChild(styleElement);
+
+  // HTML structure
+  shadowRoot.innerHTML += `
+    <div class="container">
+      <div class="header">
+        <h1>Tab Commander</h1>
+        <div class="action-buttons">
+          <span class="selection-counter" id="selectionCounter">0 selected</span>
+          <button class="action-btn" id="moveToNewWindowBtn">Move to New Window</button>
+          <button class="action-btn" id="settingsBtn">${settingsIconSvg}</button>
         </div>
-        <div id="tab-scroll">
-          <div id="tab-container"></div>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search tabs..." />
+      </div>
+
+      <div class="windows-container" id="windowsContainer"></div>
+
+      <div class="settings-panel" id="settingsPanel">
+        <h3>Theme</h3>
+        <div class="theme-option">
+          <label>
+            <input type="radio" name="theme" value="dark" checked />
+            Dark Theme
+          </label>
+        </div>
+        <div class="theme-option">
+          <label>
+            <input type="radio" name="theme" value="light" />
+            Light Theme
+          </label>
+        </div>
+        <div class="theme-option">
+          <label>
+            <input type="radio" name="theme" value="system" />
+            System Theme
+          </label>
         </div>
       </div>
     </div>
   `;
 
-  const mainBox = shadowRoot.getElementById("tab-overlay-box");
-  const tabContainer = shadowRoot.getElementById("tab-container");
-  const searchInput = shadowRoot.getElementById("search");
-  const settingsBtn = shadowRoot.getElementById("settings-btn");
-  const settingsPanel = shadowRoot.getElementById("settings-panel");
-  const newWindowBtn = shadowRoot.getElementById("new-window-btn");
-  const selectionCounter = shadowRoot.getElementById("selection-counter");
-  shadowRoot.getElementById('tab-overlay-dim').addEventListener('click', closeOverlay);
+  // Get elements
+  const searchInput = shadowRoot.getElementById("searchInput");
+  const windowsContainer = shadowRoot.getElementById("windowsContainer");
+  const settingsBtn = shadowRoot.getElementById("settingsBtn");
+  const settingsPanel = shadowRoot.getElementById("settingsPanel");
+  const moveToNewWindowBtn = shadowRoot.getElementById("moveToNewWindowBtn");
+  const selectionCounter = shadowRoot.getElementById("selectionCounter");
 
-  // --- THEME LOGIC ---
-  function applyTheme(themeName) {
-    if (themeName === 'system-theme') {
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        mainBox.className = 'dark-theme';
-      } else {
-        mainBox.className = 'light-theme';
-      }
+  let selectedTabIds = new Set();
+  let draggedTabIds = [];
+
+  // Storage for window names
+  const getWindowName = async (windowId) => {
+    const key = `windowName_${windowId}`;
+    const result = await chrome.storage.local.get(key);
+    return result[key] || null;
+  };
+
+  const setWindowName = async (windowId, name) => {
+    const key = `windowName_${windowId}`;
+    await chrome.storage.local.set({ [key]: name });
+  };
+
+  // Refinement 2: Listen for refresh messages
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "REFRESH_OVERLAY") {
+      fetchTabs();
+    }
+  });
+
+  // Theme functions
+  function applyTheme(theme) {
+    shadowRoot.host.classList.remove('dark-theme', 'light-theme');
+    
+    if (theme === 'system') {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      shadowRoot.host.classList.add(isDark ? 'dark-theme' : 'light-theme');
     } else {
-      mainBox.className = themeName;
+      shadowRoot.host.classList.add(`${theme}-theme`);
     }
   }
 
@@ -182,256 +518,339 @@
     applyTheme(themeName);
   }
 
+  // Load saved theme
   chrome.storage.sync.get('theme', (data) => {
-    const savedTheme = data.theme || 'system-theme';
+    const savedTheme = data.theme || 'dark';
     applyTheme(savedTheme);
     shadowRoot.querySelector(`input[name="theme"][value="${savedTheme}"]`).checked = true;
   });
-  
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-    const currentThemeSetting = shadowRoot.querySelector('input[name="theme"]:checked').value;
-    if (currentThemeSetting === 'system-theme') {
-      applyTheme('system-theme');
-    }
-  });
-  
-  // --- SETTINGS & NEW WINDOW LOGIC ---
-  settingsBtn.addEventListener('click', () => {
-    settingsPanel.classList.toggle('visible');
-  });
 
-  newWindowBtn.addEventListener('click', () => {
-    const selectedTabs = shadowRoot.querySelectorAll('.tab.selected');
-    
-    if (selectedTabs.length > 0) {
-      const tabIds = Array.from(selectedTabs).map(tabEl => parseInt(tabEl.getAttribute('data-tab-id')));
-      chrome.runtime.sendMessage({ type: 'MOVE_TABS_TO_NEW_WINDOW', tabIds }, () => {
-        clearSelection();
-        fetchTabs();
-      });
-    } else {
-      chrome.runtime.sendMessage({ type: 'CREATE_NEW_WINDOW' }, () => {
-        fetchTabs();
-      });
-    }
-  });
-
+  // Theme radio button listeners
   shadowRoot.querySelectorAll('input[name="theme"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
       saveAndApplyTheme(e.target.value);
     });
   });
 
-  // **UPDATED**: Renamed to a more generic "clearSelection"
-  function clearSelection() {
-    shadowRoot.querySelectorAll('.tab.selected').forEach(t => t.classList.remove('selected'));
-    selectionCounter.classList.remove('visible');
-    newWindowBtn.title = 'Create New Window';
-  }
+  // Listen for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    const currentThemeSetting = shadowRoot.querySelector('input[name="theme"]:checked').value;
+    if (currentThemeSetting === 'system') {
+      applyTheme('system');
+    }
+  });
 
-  function updateSelectionState() {
-    const selectedTabs = shadowRoot.querySelectorAll('.tab.selected');
-    if (selectedTabs.length > 0) {
-      selectionCounter.textContent = selectedTabs.length;
+  // Update selection counter
+  function updateSelectionCounter() {
+    const count = selectedTabIds.size;
+    if (count > 0) {
+      selectionCounter.textContent = `${count} selected`;
       selectionCounter.classList.add('visible');
-      newWindowBtn.title = 'Move selected tabs to a new window';
+      moveToNewWindowBtn.style.display = 'inline-flex';
     } else {
       selectionCounter.classList.remove('visible');
-      newWindowBtn.title = 'Create New Window';
+      moveToNewWindowBtn.style.display = 'none';
     }
   }
 
+  // Move selected tabs to new window
+  moveToNewWindowBtn.addEventListener('click', () => {
+    if (selectedTabIds.size > 0) {
+      chrome.runtime.sendMessage({
+        type: "MOVE_TABS_TO_NEW_WINDOW",
+        tabIds: Array.from(selectedTabIds)
+      }, () => {
+        selectedTabIds.clear();
+        updateSelectionCounter();
+        fetchTabs();
+      });
+    }
+  });
 
-  function renderTabs(windows) {
-    const allTabs = windows.flatMap(w => w.tabs.map(t => ({ ...t, windowId: w.id })));
-    tabContainer.innerHTML = "";
-    windows.forEach((win, windowIndex) => {
-      const winDiv = document.createElement("div");
-      winDiv.className = "window";
-      winDiv.setAttribute('data-window-id', win.id);
+  // Settings panel toggle
+  settingsBtn.addEventListener('click', () => {
+    settingsPanel.classList.toggle('visible');
+  });
 
-      const winHeader = document.createElement("div");
-      winHeader.className = "window-header";
+  // Close settings panel when clicking outside
+  shadowRoot.addEventListener('click', (e) => {
+    if (!settingsPanel.contains(e.target) && e.target !== settingsBtn && !settingsBtn.contains(e.target)) {
+      settingsPanel.classList.remove('visible');
+    }
+  });
+
+  // Search functionality
+  searchInput.addEventListener("input", (e) => {
+    const query = e.target.value.toLowerCase();
+    const tabs = shadowRoot.querySelectorAll(".tab");
+    
+    tabs.forEach(tab => {
+      const title = tab.querySelector(".tab-title").textContent.toLowerCase();
+      const url = tab.getAttribute("data-url").toLowerCase();
       
-      const headerText = document.createElement("span");
-      headerText.textContent = `Window ${windowIndex + 1} (${win.tabs.length} tabs)`;
+      if (title.includes(query) || url.includes(query)) {
+        tab.classList.remove("hidden");
+      } else {
+        tab.classList.add("hidden");
+      }
+    });
+  });
 
-      const closeWindowBtn = document.createElement("button");
-      closeWindowBtn.className = "window-close-btn";
-      closeWindowBtn.innerHTML = "&times;";
-      closeWindowBtn.title = "Close this window";
-      closeWindowBtn.onclick = (e) => {
-          e.stopPropagation();
-          chrome.runtime.sendMessage({ type: "CLOSE_WINDOW", windowId: win.id }, () => {
-              chrome.windows.getAll({}, (remainingWindows) => {
-                  if (remainingWindows.length === 0) {
-                      closeOverlay();
-                  } else {
-                      fetchTabs();
-                  }
-              });
+  // Fetch and render tabs
+  async function fetchTabs() {
+    chrome.runtime.sendMessage({ type: "GET_TABS" }, async (windows) => {
+      windowsContainer.innerHTML = "";
+      
+      // Find duplicate URLs
+      const urlCounts = {};
+      windows.forEach(win => {
+        win.tabs.forEach(tab => {
+          const url = new URL(tab.url || 'about:blank').href;
+          urlCounts[url] = (urlCounts[url] || 0) + 1;
+        });
+      });
+
+      // Render windows
+      for (const win of windows) {
+        const winDiv = document.createElement("div");
+        winDiv.className = "window";
+        winDiv.setAttribute("data-window-id", win.id);
+
+        const winHeader = document.createElement("div");
+        winHeader.className = "window-header";
+
+        // Window title container
+        const titleContainer = document.createElement("div");
+        titleContainer.className = "window-title-container";
+
+        const winTitle = document.createElement("div");
+        winTitle.className = "window-title";
+        const savedName = await getWindowName(win.id);
+        winTitle.textContent = savedName || `Window ${windows.indexOf(win) + 1} (${win.tabs.length} tabs)`;
+
+        // Make window title editable
+        winTitle.addEventListener("click", async () => {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.className = "window-name-input";
+          input.value = winTitle.textContent;
+          input.maxLength = 50;
+
+          const saveInput = async () => {
+            const newName = input.value.trim();
+            if (newName) {
+              await setWindowName(win.id, newName);
+              winTitle.textContent = newName;
+            } else {
+              winTitle.textContent = `Window ${windows.indexOf(win) + 1} (${win.tabs.length} tabs)`;
+            }
+            titleContainer.replaceChild(winTitle, input);
+          };
+
+          input.addEventListener("blur", saveInput);
+          input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              saveInput();
+            } else if (e.key === "Escape") {
+              titleContainer.replaceChild(winTitle, input);
+            }
           });
-      };
-      
-      winHeader.appendChild(headerText);
-      winHeader.appendChild(closeWindowBtn);
-      winDiv.appendChild(winHeader);
 
-      const tabsList = document.createElement("div");
-      tabsList.className = "tabs-list";
+          titleContainer.replaceChild(input, winTitle);
+          input.select();
+          input.focus();
+        });
 
-      win.tabs.forEach(tab => {
-        const tabDiv = document.createElement("div");
-        tabDiv.className = "tab";
-        tabDiv.setAttribute('data-tab-id', tab.id);
-        tabDiv.setAttribute('data-full-title', tab.title || '');
-        tabDiv.setAttribute('data-url', tab.url || '');
+        titleContainer.appendChild(winTitle);
+        winHeader.appendChild(titleContainer);
 
-        if (allTabs.filter(t => t.url === tab.url).length > 1) {
-            tabDiv.classList.add("duplicate");
-        }
-        
-        const faviconContainer = document.createElement("div");
-        faviconContainer.className = "favicon-container";
-        const favicon = document.createElement("img");
-        favicon.src = tab.favIconUrl || '';
-        favicon.onerror = () => {
-            faviconContainer.innerHTML = chromeIconSvg;
-        };
-        faviconContainer.appendChild(favicon);
-
-        const titleWrapper = document.createElement("span");
-        let title = tab.title || 'Untitled Tab';
-        if (title.length > 50) {
-          title = title.substring(0, 50) + '...';
-        }
-        const titleText = document.createTextNode(title);
-        titleWrapper.appendChild(titleText);
-
-        const closeBtn = document.createElement("button");
-        closeBtn.innerHTML = "&times;";
-        closeBtn.onclick = (e) => {
-          e.stopPropagation();
-          chrome.runtime.sendMessage({ type: "CLOSE_TAB", id: tab.id }, () => fetchTabs());
+        const closeWindowBtn = document.createElement("button");
+        closeWindowBtn.className = "close-window";
+        closeWindowBtn.textContent = "Close Window";
+        closeWindowBtn.onclick = () => {
+          chrome.runtime.sendMessage({ 
+            type: "CLOSE_WINDOW", 
+            windowId: win.id 
+          }, () => {
+            fetchTabs();
+          });
         };
 
-        tabDiv.appendChild(faviconContainer);
-        tabDiv.appendChild(titleWrapper);
-        tabDiv.appendChild(closeBtn);
+        winHeader.appendChild(closeWindowBtn);
+        winDiv.appendChild(winHeader);
 
-        tabDiv.setAttribute("draggable", "true");
+        const tabsList = document.createElement("div");
+        tabsList.className = "tabs-list";
 
-        tabDiv.addEventListener("dragstart", (e) => {
-          const selectedTabs = shadowRoot.querySelectorAll('.tab.selected');
-          let tabIdsToMove;
-
-          if (selectedTabs.length > 0 && e.currentTarget.classList.contains('selected')) {
-            tabIdsToMove = Array.from(selectedTabs).map(t => parseInt(t.getAttribute('data-tab-id')));
-          } else {
-            shadowRoot.querySelectorAll('.tab.selected').forEach(t => t.classList.remove('selected'));
-            updateSelectionState();
-            tabIdsToMove = [tab.id];
+        // Render tabs
+        win.tabs.forEach(tab => {
+          const tabDiv = document.createElement("div");
+          tabDiv.className = "tab";
+          
+          // Highlight active tab
+          if (tab.active) {
+            tabDiv.classList.add("active-tab");
           }
           
-          e.dataTransfer.setData("application/json", JSON.stringify({ tabIds: tabIdsToMove }));
-          e.dataTransfer.effectAllowed = "move";
-          e.currentTarget.classList.add("dragging");
+          const url = new URL(tab.url || 'about:blank').href;
+          if (urlCounts[url] > 1) {
+            tabDiv.classList.add("duplicate");
+          }
+          
+          tabDiv.setAttribute("data-tab-id", tab.id);
+          tabDiv.setAttribute("data-url", tab.url || '');
+          tabDiv.setAttribute("draggable", "true");
+
+          // Tab selection
+          tabDiv.addEventListener("click", (e) => {
+            if (e.target.classList.contains("close-tab")) return;
+            
+            if (e.ctrlKey || e.metaKey) {
+              if (selectedTabIds.has(tab.id)) {
+                selectedTabIds.delete(tab.id);
+                tabDiv.classList.remove("selected");
+              } else {
+                selectedTabIds.add(tab.id);
+                tabDiv.classList.add("selected");
+              }
+              updateSelectionCounter();
+            } else {
+              chrome.runtime.sendMessage({
+                type: "ACTIVATE_TAB",
+                id: tab.id,
+                windowId: win.id
+              });
+              closeOverlay();
+            }
+          });
+
+          // Drag and drop
+          tabDiv.addEventListener("dragstart", (e) => {
+            if (selectedTabIds.has(tab.id) && selectedTabIds.size > 1) {
+              draggedTabIds = Array.from(selectedTabIds);
+            } else {
+              draggedTabIds = [tab.id];
+            }
+            e.dataTransfer.effectAllowed = "move";
+          });
+
+          tabDiv.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          });
+
+          tabDiv.addEventListener("drop", (e) => {
+            e.preventDefault();
+            if (draggedTabIds.length > 0 && !draggedTabIds.includes(tab.id)) {
+              chrome.runtime.sendMessage({
+                type: "MOVE_TAB",
+                tabIds: draggedTabIds,
+                windowId: win.id,
+                index: tab.index
+              }, () => {
+                selectedTabIds.clear();
+                updateSelectionCounter();
+                fetchTabs();
+              });
+            }
+          });
+
+          // Favicon
+          const faviconContainer = document.createElement("div");
+          faviconContainer.className = "favicon-container";
+          
+          if (tab.favIconUrl) {
+            const favicon = document.createElement("img");
+            favicon.src = tab.favIconUrl;
+            favicon.onerror = () => {
+              faviconContainer.innerHTML = chromeIconSvg;
+            };
+            faviconContainer.appendChild(favicon);
+          } else {
+            faviconContainer.innerHTML = chromeIconSvg;
+          }
+
+          // Tab title
+          const tabTitle = document.createElement("div");
+          tabTitle.className = "tab-title";
+          tabTitle.textContent = tab.title || tab.url || "New Tab";
+
+          // Close button
+          const closeBtn = document.createElement("button");
+          closeBtn.className = "close-tab";
+          closeBtn.innerHTML = "×";
+          closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            chrome.runtime.sendMessage({ 
+              type: "CLOSE_TAB", 
+              id: tab.id 
+            }, () => {
+              fetchTabs();
+            });
+          };
+
+          tabDiv.appendChild(faviconContainer);
+          tabDiv.appendChild(tabTitle);
+          tabDiv.appendChild(closeBtn);
+          tabsList.appendChild(tabDiv);
         });
 
-        tabDiv.addEventListener("dragend", (e) => {
-          e.currentTarget.classList.remove("dragging");
-        });
+        winDiv.appendChild(tabsList);
+        windowsContainer.appendChild(winDiv);
 
-        tabDiv.addEventListener("dragover", (e) => {
+        // Window-level drop zone
+        winDiv.addEventListener("dragover", (e) => {
           e.preventDefault();
-          e.currentTarget.classList.add("drag-over-tab");
+          e.dataTransfer.dropEffect = "move";
         });
 
-        tabDiv.addEventListener("dragleave", (e) => {
-          e.currentTarget.classList.remove("drag-over-tab");
-        });
-
-        tabDiv.addEventListener("drop", (e) => {
+        winDiv.addEventListener("drop", (e) => {
           e.preventDefault();
           e.stopPropagation();
-          e.currentTarget.classList.remove("drag-over-tab");
-          const data = JSON.parse(e.dataTransfer.getData("application/json"));
           
-          if (!data.tabIds.includes(tab.id)) {
-            chrome.runtime.sendMessage({ type: "MOVE_TAB", tabIds: data.tabIds, windowId: win.id, index: tab.index }, () => {
-              clearSelection();
+          if (draggedTabIds.length > 0) {
+            const targetWindowId = parseInt(winDiv.getAttribute("data-window-id"));
+            chrome.runtime.sendMessage({
+              type: "MOVE_TAB",
+              tabIds: draggedTabIds,
+              windowId: targetWindowId,
+              index: -1
+            }, () => {
+              selectedTabIds.clear();
+              updateSelectionCounter();
               fetchTabs();
             });
           }
         });
+      }
 
-        tabDiv.addEventListener("click", (e) => {
-          if (e.metaKey || e.ctrlKey) {
-            e.preventDefault();
-            e.stopPropagation();
-            tabDiv.classList.toggle('selected');
-            updateSelectionState();
+      // Reapply search filter after fetching
+      const currentQuery = searchInput.value.toLowerCase();
+      if (currentQuery) {
+        const tabs = shadowRoot.querySelectorAll(".tab");
+        tabs.forEach(tab => {
+          const title = tab.querySelector(".tab-title").textContent.toLowerCase();
+          const url = tab.getAttribute("data-url").toLowerCase();
+          
+          if (title.includes(currentQuery) || url.includes(currentQuery)) {
+            tab.classList.remove("hidden");
           } else {
-            chrome.runtime.sendMessage({ type: "ACTIVATE_TAB", id: tab.id, windowId: tab.windowId });
-            closeOverlay();
+            tab.classList.add("hidden");
           }
         });
-
-        tabsList.appendChild(tabDiv);
-      });
-
-      winDiv.appendChild(tabsList);
-      tabContainer.appendChild(winDiv);
-
-      winDiv.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        e.currentTarget.classList.add("drag-over-window");
-      });
-      winDiv.addEventListener("dragleave", (e) => {
-        e.currentTarget.classList.remove("drag-over-window");
-      });
-      
-      winDiv.addEventListener("drop", (e) => {
-        e.preventDefault();
-        e.currentTarget.classList.remove("drag-over-window");
-        const data = JSON.parse(e.dataTransfer.getData("application/json"));
-        chrome.runtime.sendMessage({ type: "MOVE_TAB", tabIds: data.tabIds, windowId: win.id, index: -1 }, () => {
-          clearSelection();
-          fetchTabs();
-        });
-      });
-    });
-  }
-
-  function applySearchFilter() {
-    const filter = searchInput.value.toLowerCase();
-    const tabs = shadowRoot.querySelectorAll('.tab');
-    tabs.forEach(tab => {
-        const title = tab.getAttribute('data-full-title').toLowerCase();
-        const url = tab.getAttribute('data-url').toLowerCase();
-        const isMatch = title.includes(filter) || url.includes(filter);
-        tab.style.display = isMatch ? "flex" : "none";
-    });
-
-    shadowRoot.querySelectorAll('.window').forEach(windowDiv => {
-        const visibleTabs = windowDiv.querySelectorAll('.tab[style*="display: flex"]');
-        windowDiv.style.display = visibleTabs.length > 0 ? "block" : "none";
-    });
-  }
-
-  searchInput.addEventListener("input", applySearchFilter);
-
-  function fetchTabs() {
-    chrome.runtime.sendMessage({ type: "GET_TABS" }, (windows) => {
-      if (chrome.runtime.lastError) {
-        console.error("Failed to fetch tabs:", chrome.runtime.lastError);
-        return;
       }
-      renderTabs(windows);
-      applySearchFilter();
+
+      // Reapply selections
+      selectedTabIds.forEach(tabId => {
+        const tabElement = shadowRoot.querySelector(`[data-tab-id="${tabId}"]`);
+        if (tabElement) {
+          tabElement.classList.add("selected");
+        }
+      });
     });
   }
 
+  // Initial render
   fetchTabs();
 })();
-
